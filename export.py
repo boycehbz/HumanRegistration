@@ -24,7 +24,10 @@ def get_bone_matrix(a):
 
 def get_vertices(me, ob_main):
     me_verts = me.vertices[:]
-    vertices = [(ob_main.matrix_world * me_verts.co).to_tuple() for me_verts in me_verts]
+    if bpy.app.version[1] > 80:
+        vertices = [(ob_main.matrix_world @ me_verts.co).to_tuple() for me_verts in me_verts]
+    elif bpy.app.version[1] > 70:
+        vertices = [(ob_main.matrix_world * me_verts.co).to_tuple() for me_verts in me_verts]
     return np.array(vertices)
 
 def get_faces(me):
@@ -64,8 +67,14 @@ if __name__ == "__main__":
 
     a = bpy.data.objects[skeleton]
     ob_main = bpy.data.objects[mesh]
-    depsgraph = bpy.context.scene
-    me = ob_main.to_mesh(depsgraph, True, 'RENDER')
+    if bpy.app.version[1] > 80:
+        # the version of current blender > 80
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        me = ob_main.to_mesh(preserve_all_data_layers=True, depsgraph=depsgraph)
+    elif bpy.app.version[1] > 70:
+        depsgraph = bpy.context.scene
+        me = ob_main.to_mesh(depsgraph, True, 'RENDER')
+        
 
     # get bones
     data['bones'], data['bone_name'] = get_bone_matrix(a)
